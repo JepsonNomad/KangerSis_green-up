@@ -1,0 +1,7 @@
+ssh farm
+
+cd PATH/TO/DIR/MOD10A1/
+
+mkdir data
+
+sbatch -p high 901_snowPheno01.sh

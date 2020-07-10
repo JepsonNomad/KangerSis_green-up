@@ -1,0 +1,7 @@
+ssh farm
+
+cd PATH/TO/DIR/MOD13Q1/
+
+mkdir FARM_outputs
+
+sbatch -p high 901_phenology1.sh

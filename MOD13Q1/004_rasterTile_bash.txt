@@ -1,0 +1,4 @@
+cd PATH/TO/DIR/MOD13Q1/
+
+python 004_rasterTile.py MOD13Q1_stack_NDVI.tif MOD13Q1_crop_NDVI
+python 004_rasterTile.py MOD13Q1_stack_DOY.tif MOD13Q1_crop_DOY

@@ -1,0 +1,100 @@
+// Generate Region of Interest
+//var ROI = ee.FeatureCollection('USDOS/LSIB/2013')
+//  .filter(ee.Filter.eq('cc','GL'));
+print(ROI);
+// visualize
+Map.centerObject(ROI, 6); // Center on the Grand Canyon.
+Map.addLayer(ROI, {color: 'FF3333', opacity:0.99}, 'Kanger');
+
+// Generate water, ice layers
+var ICE = ee.Image('OSU/GIMP/2000_ICE_OCEAN_MASK').clip(ROI);
+
+// Create clipping function
+var clipper = function(image){
+  return image.clip(ROI);
+};
+
+// Create a QA mask function
+var masker = function(image){ 
+  var mask1 = ICE.select("ocean_mask").lte(0.5);
+  var mask2 = ICE.select("ice_mask").lte(0.5);
+  var mask3 = image.select('SummaryQA').lte(1);
+  var mask4 = image.select('SummaryQA').gte(0);
+  var maskedimage = image.updateMask(mask1).updateMask(mask2).updateMask(mask3).updateMask(mask4);
+  return maskedimage.unmask(-99999).clip(ROI);
+};
+
+// Compile the data
+var dataset = ee.ImageCollection('MODIS/006/MOD13Q1')
+                  .filter(ee.Filter.date('2001-01-01', '2018-12-31'))
+                  .map(clipper);
+print("MOD13Q1 Image Collection", dataset);
+
+// Select the data you're interested in
+var ndvi = dataset.map(masker).select('NDVI');
+var doy = dataset.select('DayOfYear');
+var QA = dataset.select('SummaryQA');
+print("MOD13Q1 NDVI Collection",ndvi);
+print("MOD13Q1 DOY Collection",doy);
+print("MOD13Q1 QA Collection",QA);
+
+
+// PREPARE DATA FOR EXPORT
+// Thanks Tyler Erickson for the stacking function
+// https://gis.stackexchange.com/a/254778/67264
+// The code below is slightly modified from Erickson's
+// approach in order to rename using dateString in
+// stackCollection function
+var stackCollection = function(collection) {
+  // Create an initial image.
+  var first = ee.Image(collection.first()).select([]);
+
+  // Write a function that appends a band to an image.
+  var appendBands = function(image, previous) {
+      var dateString = ee.Date(image.get('system:time_start')).format('yyyy-MM-dd');
+      return ee.Image(previous).addBands(image.rename(dateString));
+  };
+  return ee.Image(collection.iterate(appendBands, first));
+};
+
+var ndvi_img = stackCollection(ndvi);
+var doy_img = stackCollection(doy);
+var QA_img = stackCollection(QA);
+
+
+// Export the data
+// Export a cloud-optimized GeoTIFF.
+// See https://developers.google.com/earth-engine/exporting
+Export.image.toDrive({
+  image: ndvi_img,
+  description: 'MOD13Q1_comp_NDVI',
+  scale: 250,
+  region: ROI,
+  fileFormat: 'GeoTIFF',
+  formatOptions: {
+    cloudOptimized: true
+  }
+});
+
+Export.image.toDrive({
+  image: doy_img,
+  description: 'MOD13Q1_comp_DOY',
+  scale: 250,
+  region: ROI,
+  fileFormat: 'GeoTIFF',
+  formatOptions: {
+    cloudOptimized: true
+  }
+});
+
+Export.image.toDrive({
+  image: QA_img,
+  description: 'MOD13Q1_comp_QA',
+  scale: 250,
+  region: ROI,
+  fileFormat: 'GeoTIFF',
+  formatOptions: {
+    cloudOptimized: true
+  }
+});
+

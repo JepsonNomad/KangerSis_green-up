@@ -1,0 +1,126 @@
+// Generate Region of Interest
+print(ROI);
+// visualize
+Map.setCenter(-48, 67, 6); // Center on the Grand Canyon.
+Map.addLayer(ROI, {color: 'FF3333', opacity:0.99}, 'Kanger');
+
+// Generate water+ice and DEM layers
+var ICE = ee.Image('OSU/GIMP/2000_ICE_OCEAN_MASK').clip(ROI);
+var DEM = ee.Image("OSU/GIMP/DEM").clip(ROI);
+
+var DEMParams = {
+  min: 0,
+  max: 2000,
+  opacity: 0.5,
+  palette: ['#0000ff', '#00ff00','#007f30','#30b855','#ff0000','#ffff00','#ffffff']
+};
+
+Map.addLayer(DEM,DEMParams,"DEM");
+
+// Create a QA mask + clipping function
+var masker = function(image){ 
+  var mask1 = ICE.select("ocean_mask").lte(0.5);
+  var mask2 = ICE.select("ocean_mask").lte(0.5);
+  var mask3 = image.select('NDSI_Snow_Cover_Basic_QA').lte(2);
+  var maskedImage = image.updateMask(mask1).updateMask(mask2).updateMask(mask3);
+  return maskedImage.unmask(-99999).clip(ROI);
+  
+};
+
+// Compile the data
+var dataset = ee.ImageCollection('MODIS/006/MOD10A1')
+                  .filter(ee.Filter.date('2001-01-01', '2001-12-31'))
+                  .map(masker);
+print("MOD10A1 Image Collection", dataset);
+
+// Select the data you're interested in
+var ndsi = dataset.select('NDSI_Snow_Cover');
+var QA = dataset.select('NDSI_Snow_Cover_Basic_QA');
+print("MOD10A1 NDSI Collection",ndsi);
+
+// Define the chart
+var NDSI_chart = ui.Chart.image.series({
+  imageCollection: ndsi,
+  region: ROI,
+  reducer: ee.Reducer.mean(),
+  scale: 500
+}).setOptions({title: 'NDSI'});
+print("Regional mean NDSI timeseries",NDSI_chart);
+
+
+// Create a visualization color scheme
+var ndsiVis = {
+  min: 0, 
+  max: 100,
+  palette: [
+    'FFFFFF', 'CE7E45', 'DF923D', 'F1B555', 'FCD163', '99B718', '74A901',
+    '66A000', '529400', '3E8601', '207401', '056201', '004C00', '023B01',
+    '012E01', '011D01', '011301'
+  ],
+};
+
+// For QA: bright blue = 0 = good data
+//         pale green  = 1 = Marginal data
+//         yellow      = 2 = Snow or Ice cover
+//         white       = 3 = cloudy
+var QAVis = {
+  min: 0, 
+  max: 3,
+  palette: [
+    '6a65ff', '74A901', 'f3f304', 'ffffff'
+  ],
+};
+
+// Plot the data
+Map.addLayer(ndsi.filter(ee.Filter.date("2001-07-01","2001-07-17")), ndsiVis, 'NDSI');
+Map.addLayer(QA.filter(ee.Filter.date("2001-07-01","2001-07-17")), QAVis, 'QA');
+
+// Define a chart with one series in the region, averaged by DOY.
+// Guide here: https://developers.google.com/earth-engine/charts_image_doy_series
+var series1 = ui.Chart.image.doySeries(
+    dataset, ROI, ee.Reducer.mean(), 500);
+// Define a chart with a a different series for each year in the region.
+var series2 = ui.Chart.image.doySeriesByYear(
+    dataset, "NDSI", ROI, ee.Reducer.mean(), 500);
+
+// Display the three charts.
+print("NDSI timeseries",series1, series2);
+
+// PREPARE DATA FOR EXPORT
+// Thanks Tyler Erickson for the stacking function
+// https://gis.stackexchange.com/a/254778/67264
+// The code below is slightly modified from Erickson's
+// approach in order to rename using dateString in
+// stackCollection function
+var stackCollection = function(collection) {
+  // Create an initial image.
+  var first = ee.Image(collection.first()).select([]);
+
+  // Write a function that appends a band to an image.
+  var appendBands = function(image, previous) {
+      var dateString = ee.Date(image.get('system:time_start')).format('yyyy-MM-dd');
+      return ee.Image(previous).addBands(image.rename(dateString));
+  };
+  return ee.Image(collection.iterate(appendBands, first));
+};
+
+var ndsi_img = stackCollection(ndsi);
+print("NDSI stacked collection", ndsi_img);
+
+
+// Export the data
+// Export a cloud-optimized GeoTIFF.
+// See https://developers.google.com/earth-engine/exporting
+
+Export.image.toDrive({
+  image: ndsi_img,
+  description: 'NDSI_2001',
+  folder: "Kanger_MOD10A1",
+  scale: 500,
+  region: ROI,
+  fileFormat: 'GeoTIFF',
+  formatOptions: {
+    cloudOptimized: true
+  }
+});
+

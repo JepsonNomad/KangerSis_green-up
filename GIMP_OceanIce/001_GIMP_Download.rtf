@@ -1,0 +1,41 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf500
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 // Generate Region of Interest\
+//var ROI = ee.FeatureCollection('USDOS/LSIB/2013')\
+//  .filter(ee.Filter.eq('cc','GL'));\
+print(ROI);\
+// visualize\
+Map.centerObject(ROI, 6); // Center on the ROI.\
+Map.addLayer(ROI, \{color: 'FF3333', opacity:0.99\}, 'Kanger');\
+\
+// Generate water, ice layers\
+var GIMP = ee.Image('OSU/GIMP/2000_ICE_OCEAN_MASK').clip(ROI);\
+print("GIMP",GIMP);\
+\
+// Look at individual bands\
+var ICE = GIMP.select("ice_mask");\
+Map.addLayer(ICE, \{min:0, max:1\}, "Ice mask");\
+print("Ice mask", ICE);\
+var OCEAN = ee.Image('OSU/GIMP/2000_ICE_OCEAN_MASK').clip(ROI).select("ocean_mask");\
+Map.addLayer(OCEAN, \{min:0, max:1\}, "Ocean mask");\
+print("Ocean mask", OCEAN);\
+\
+// Export\
+Export.image.toDrive(\{\
+  image: GIMP,\
+  description: 'GIMP',\
+  folder: 'Kanger_GIMP',\
+  scale: 250,\
+  region: ROI,\
+  fileFormat: 'GeoTIFF',\
+  formatOptions: \{\
+    cloudOptimized: true\
+  \}\
+\});\
+\
+}

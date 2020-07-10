@@ -4,7 +4,7 @@ The code in this repository can be used to reproduce the figures and results pre
 
 *Regional variation in green-up timing along a caribou migratory corridor: spatial associations with snowmelt and temperature*
 
-Currently, a postprint of the manuscript can be found on EcoEvoRxiv at [this link]<https://ecoevorxiv.org/xmd69/>
+Currently, a postprint of the manuscript can be found on EcoEvoRxiv at [this link](https://ecoevorxiv.org/xmd69/)
 
 ## Instructions
 
@@ -20,7 +20,7 @@ NDSI data were binarized using a 0.2 NDSI cutoff, with values above 0.2 set to 1
 
 ### NDVI Phenology (subdirectory `/MOD13Q1/`)
 
-Vegetation phenology was indexed using a double logistic function described in Bischof et al 2012 (The American Naturalist). MOD13Q1 data were downloaded using Google Earth Engine with the contents of `001_MOD13Q1_DL.txt`. A projection issue in the data existed at the time of download, and if that issue persists can be corrected using the `003_MOD-ExtentFix.R` script. Finally, the MOD13Q1 data were tiled to save computing requirements per raster dataset; tiling parameters are  defined in `004_rasterTile.py` and tiling is executed using the code in `004_rasterTile_bash.txt`.
+Vegetation phenology was indexed using a double logistic function described in [Bischof et al 2012](https://www.jstor.org/stable/10.1086/667590?seq=1#metadata_info_tab_contents). MOD13Q1 data were downloaded using Google Earth Engine with the contents of `001_MOD13Q1_DL.txt`. A projection issue in the data existed at the time of download, and if that issue persists can be corrected using the `003_MOD-ExtentFix.R` script. Finally, the MOD13Q1 data were tiled to save computing requirements per raster dataset; tiling parameters are  defined in `004_rasterTile.py` and tiling is executed using the code in `004_rasterTile_bash.txt`.
 
 Functions for preprocessing the NDVI data are in `002_DataFilteringFunctions.R` and are called down the line in `101_phenomap.R`, where the derivation of phenology indices also occurs. The phenomap function is executed in the shell script `901_phenology1.sh` and needs to be performed for each tile generated in `004_...`. Because computations were carried out on a remote computing cluster, the phenology shell scripts are executed with `902_submitjonbs.txt`, which again must be called for each tile. Phenology raster products can then be warped to a common CRS and fortified using the same approach described above for snowmelt.
 

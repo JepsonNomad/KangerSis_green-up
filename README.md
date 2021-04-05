@@ -4,7 +4,7 @@ The code in this repository can be used to reproduce the figures and results pre
 
 *Regional variation in green-up timing along a caribou migratory corridor: spatial associations with snowmelt and temperature*
 
-Currently, a postprint of the manuscript can be found on EcoEvoRxiv at [this link](https://ecoevorxiv.org/xmd69/)
+The manuscript can be found at [this link](https://www.tandfonline.com/doi/full/10.1080/15230430.2020.1796009)
 
 ## Instructions
 
